@@ -52,7 +52,7 @@ function joinGame() {
 }
 
 function createWebsocketConnection(gameRoomId) {
-    const webSocketUrl = 'ws://chess-api-production.up.railway.app/cable';
+    const webSocketUrl = 'wss://chess-api-production.up.railway.app/cable';
     socket = new WebSocket(webSocketUrl);
      
     // connect to the room channel
