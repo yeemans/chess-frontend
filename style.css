@@ -50,7 +50,7 @@ p {
     -webkit-text-stroke-color: transparent;
 }
 
-#IDtext { 
+#IDtext, #status { 
     font-family: Arial; 
     font-size: 1em;
 }

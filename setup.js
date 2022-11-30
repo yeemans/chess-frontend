@@ -17,8 +17,6 @@ async function createRoom() {
     await console.log(json); 
     await createWebsocketConnection(json["game_id"]);
     await setPlayerColor("white");
-    gameStarted = true;
-    playChess(turn);
 }
 
 function setPlayerColor() { 
@@ -48,7 +46,24 @@ function joinGame() {
         createWebsocketConnection(gameID);
         gameStarted = true;
         playChess(turn);
+        // show opponent's first move, if applicable 
+        getOpponentsFirstMove();
+        document.getElementById("status").classList.remove("hidden");
     }
+}
+
+async function getOpponentsFirstMove() { 
+    let url = await fetch(`https://chess-api-production.up.railway.app/${gameID}/moves`); 
+    let json = await url.json(); 
+
+    await showOpponentsFirstMove(json);
+}
+
+function showOpponentsFirstMove(json) { 
+    if (json.length == 0) return;
+    let lastMove = json[json.length - 1]; 
+    let piece = getPieceOnSquare(lastMove["start"]);  
+    if (piece) movePiece(gameID, piece, lastMove["end"]);
 }
 
 function createWebsocketConnection(gameRoomId) {
@@ -57,16 +72,29 @@ function createWebsocketConnection(gameRoomId) {
      
     // connect to the room channel
     socket.onopen = function(event) {
+        let joining = false;
+
         console.log('WebSocket is connected.');
-        const room = {
+        let room = {
             command: 'subscribe',
             identifier: JSON.stringify({
                 game_id: gameRoomId,
-                channel: 'RoomsChannel'
+                channel: 'RoomsChannel', 
             }),
         };
         socket.send(JSON.stringify(room));
-        console.log(room);
+
+        // if joining the room, send a message telling the host that room is joined
+        if (window.location.href.includes("?id")) {
+            fetch('https://chess-api-production.up.railway.app/update_room_status', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ "room_id": gameRoomId})
+            })
+        }
     };
     
     // When the connection is closed, this code will run.
@@ -74,24 +102,28 @@ function createWebsocketConnection(gameRoomId) {
         console.log('WebSocket is closed.');
     };
     // When a message is received through the websocket, this code will run.
-    socket.onmessage = function(event) {            
+    socket.onmessage = function(event) {           
         const response = event.data;
         const move = JSON.parse(response);
+        if (move.type === "ping") return; 
         
-        // Ignores pings.
-        if (move.type === "ping") {
-            return;
-        }
-        console.log("FROM RAILS: ", move);
-
         // move is in the move["message"] hash
+        if (move["message"] == "joined") { 
+            gameStarted = true;
+            playChess(turn);
+        }
+        if (gameStarted) 
+            document.getElementById("status").innerText = `${colorToMove} to move.`; 
+
         if (move["message"] && move["message"]["start"]) { 
             let piece = getPieceOnSquare(move["message"]["start"]); 
+            // receiving a move from websocket
             if (piece) { 
                 movePiece(gameID, piece, move["message"]["end"]);
                 setColorToMove(piece);
             }
         }
+        console.log(move)
     };
     
     socket.onerror = function(error) {
@@ -101,9 +133,13 @@ function createWebsocketConnection(gameRoomId) {
 
 function setGameID(json) { 
     gameID = json["game_id"];
-    let message = document.getElementById("IDtext"); 
-    message.classList.remove("hidden");
-    message.innerText = `Give this ID to your friend: ${gameID}`;
+    let idText = document.getElementById("IDtext"); 
+    let status = document.getElementById("status"); 
+
+    idText.classList.remove("hidden");
+    idText.innerText = `Give this ID to your friend: ${gameID}`;
+
+    status.classList.remove("hidden");
 }
 
 async function receiveMoves(gameID) { 

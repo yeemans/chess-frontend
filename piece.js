@@ -147,8 +147,7 @@ function movePiece(gameID, piece, move) {
     handlePromotion(piece);
     setUpNextMove();
 
-    // only send move to opponent if playing online
-    if (gameID) sendMoveToOpponent(gameID, moveHash);
+    sendMoveToOpponent(gameID, moveHash);
     setColorToMove(piece);
 }
 
