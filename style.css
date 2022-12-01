@@ -16,7 +16,7 @@
 }
 
 .hidden { 
-    visibility: hidden;
+    display: none;
 }
 .dark { 
     background: rgb(81,130,171);
@@ -53,4 +53,8 @@ p {
 #IDtext, #status { 
     font-family: Arial; 
     font-size: 1em;
+}
+
+#instructions { 
+    font-family: Arial;
 }

@@ -112,16 +112,14 @@ function createWebsocketConnection(gameRoomId) {
             gameStarted = true;
             playChess(turn);
         }
-        if (gameStarted) 
-            document.getElementById("status").innerText = `${colorToMove} to move.`; 
-
-        if (move["message"] && move["message"]["start"]) { 
-            let piece = getPieceOnSquare(move["message"]["start"]); 
-            // receiving a move from websocket
-            if (piece) { 
-                movePiece(gameID, piece, move["message"]["end"]);
-                setColorToMove(piece);
-            }
+        if (!gameStarted) return;
+        updateTurnText();
+        // if the message is a move
+        if (move["message"] && move["message"].hasOwnProperty("start")) { 
+            let piece = getPieceOnSquare(move["message"]["start"]);
+            if (!piece) return; 
+            movePiece(gameID, piece, move["message"]["end"]);
+            setColorToMove(piece);
         }
         console.log(move)
     };
@@ -138,8 +136,26 @@ function setGameID(json) {
 
     idText.classList.remove("hidden");
     idText.innerText = `Give this ID to your friend: ${gameID}`;
-
     status.classList.remove("hidden");
+}
+
+function updateTurnText() { 
+    let turnText = "Opponent's turn."
+    let status = document.getElementById("status")
+    if (colorToMove == playerColor) turnText = "Your turn."
+    status.innerText = turnText; 
+    document.title = turnText;
+
+    if (handleStaleMate(turn))  
+        status.innerText = "Stalemate."
+    if (handleCheckMate(turn)) {
+        let winner = handleCheckMate(turn);
+        status.innerText = `${winner} wins.`;
+    }
+    if (threeFoldRepetition(turn)) { 
+        status.innerText = "Draw by repetitition";
+    }
+    
 }
 
 async function receiveMoves(gameID) { 
@@ -347,8 +363,10 @@ function handleCheckMate(turn) {
 
     if ( !piecesCanMove(color) && isInCheck(getKing(color)) ) { 
         let winner = otherColorPieces[0].color;
-        alert(`${winner} wins!`);
+        return winner;
     }
+
+    return false;
 }
 
 function handleStaleMate(turn) { 
@@ -363,8 +381,10 @@ function handleStaleMate(turn) {
     calculateMoves(otherColorPieces);
 
     if ( !piecesCanMove(color) && !isInCheck(getKing(color)) ) { 
-        alert(`Stalemate.`);
+        return true;
     }
+
+    return false;
 }
 
 function getLastFiveMoves(color) { 
@@ -398,7 +418,6 @@ function threeFoldRepetition() {
         if (blackMove.start != lastBlackMove.end || 
             blackMove.end != lastBlackMove.start) return;
     }
-    alert("Threefold Repetition Draw.");
     return true;
 }
 
@@ -420,7 +439,7 @@ function setPieces() {
     const DISTANCE = 56;
     for (let rookSquare of [56, 63]) {
         allPieces.push(new Rook("white", rookSquare)); 
-        allPieces.push(new Rook("black", rookSquare - DISTANCE))
+        allPieces.push(new Rook("black", rookSquare - DISTANCE));
     }
 
     for (let knightSquare of [57, 62]) { 
