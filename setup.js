@@ -133,10 +133,21 @@ function setGameID(json) {
     gameID = json["game_id"];
     let idText = document.getElementById("IDtext"); 
     let status = document.getElementById("status"); 
+    let url = "https://yeemans.github.io/chess-frontend/?id=";
+    let roomLink = document.getElementById("roomLink");
+    let copyButton = document.getElementById("copyButton");
 
     idText.classList.remove("hidden");
-    idText.innerText = `Give this ID to your friend: ${gameID}`;
+    roomLink.classList.remove("hidden");
+    roomLink.value = url + gameID;
+    
     status.classList.remove("hidden");
+    copyButton.classList.remove("hidden");
+}
+
+function copyRoomLink() {
+    let url = document.getElementById("roomLink").value;
+    navigator.clipboard.writeText(url);
 }
 
 function updateTurnText() { 
